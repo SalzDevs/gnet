@@ -23,31 +23,19 @@ type Message struct {
 	payload []byte
 }
 
-func validSize(m Message) error {
-	expected := int(m.size)
-	actual := 1 + len(m.payload)
-	
-	if expected == actual {
-		return nil
-	}
-
-	if actual < expected {
-		return fmt.Errorf("size mismatch: expected %d, got %d (short)", expected, actual)
-	}
-	
-	return fmt.Errorf("size mismatch: expected %d, got %d (long)", expected, actual)
+func NewMessage(messageType uint8, payload []byte) Message{
+	return Message {
+		size: uint16(len(payload)+1),
+		messageType: messageType,
+		payload: payload,
+	}	
 }
 
 func main(){
-	m := Message{1,1,[]byte("Hello man")}
+	m := NewMessage(1, []byte("Hello man")) 
 	fmt.Printf("%+v\n", m)
+
 	println("size:",m.size)
 	println("messageType size:",unsafe.Sizeof(m.messageType))
 	println("payload:",len(m.payload))
-	err := validSize(m)
-	if err != nil{
-		println(err.Error())
-		return
-	}
-	println("Nice the size is correct!!!")
 }
