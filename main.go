@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"unsafe"
+)
+
 type Message struct {
 	// size is the total number of bytes that follow this field in the stream.
 	// It includes:
@@ -19,5 +24,9 @@ type Message struct {
 }
 
 func main(){
-	println("Hello seamen!")
+	m := Message{10,1,[]byte("Hello man")}
+	fmt.Printf("%+v\n", m)
+	println("size:",m.size)
+	println("messageType size:",unsafe.Sizeof(m.messageType))
+	println("payload:",len(m.payload))
 }
