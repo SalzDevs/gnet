@@ -58,49 +58,59 @@ Message convBytesToMessage(uint8_t* bytes) {
 }
 
 int main() {
-  int server_fd, new_socket; long valread;
-    struct sockaddr_in address;
-    int addrlen = sizeof(address);
-    
-    // Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-    {
-        perror("In socket");
-        exit(EXIT_FAILURE);
-    }
-    
+  int server_fd, new_socket;
+  struct sockaddr_in address;
+  int addrlen = sizeof(address);
 
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( PORT );
-    
-    memset(address.sin_zero, '\0', sizeof address.sin_zero);
-    
-    
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
-    {
-        perror("In bind");
-        exit(EXIT_FAILURE);
+  server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+  address.sin_family = AF_INET;
+  address.sin_addr.s_addr = INADDR_ANY;
+  address.sin_port = htons(PORT);
+
+  bind(server_fd, (struct sockaddr*)&address, sizeof(address));
+  listen(server_fd, 10);
+
+  while (1) {
+    printf("Waiting for connection...\n");
+
+    new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+    printf("Client connected!\n");
+
+    // Read header (2 bytes)
+    uint8_t header[2];
+    read(new_socket, header, 2);
+
+    uint16_t size = (header[0] << 8) | header[1];
+
+    // Read rest of message
+    uint8_t* buffer = (uint8_t*)malloc(size);
+
+    size_t total_read = 0;
+    while (total_read < size) {
+      ssize_t r = read(new_socket, buffer + total_read, size - total_read);
+      if (r <= 0) break;
+      total_read += r;
     }
-    if (listen(server_fd, 10) < 0)
-    {
-        perror("In listen");
-        exit(EXIT_FAILURE);
+
+    // Build full packet (header + rest)
+    uint8_t* full = (uint8_t*)malloc(size + 2);
+    memcpy(full, header, 2);
+    memcpy(full + 2, buffer, size);
+
+    // Parse message
+    Message m = convBytesToMessage(full);
+
+    printf("Message: size=%u type=%u\n", m.size, m.messageType);
+
+    for (int i = 0; i < m.size - 1; i++) {
+      printf("%u\n", m.payload[i]);
     }
-    while(1)
-    {
-        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
-        {
-            perror("In accept");
-            exit(EXIT_FAILURE);
-        }
-        printf("Client Connected!"); 
-        char buffer[6] = {0};
-        valread = read( new_socket , buffer, 6);
-        for (auto elem : buffer){
-          printf("%u\n",elem);
-        }
-        close(new_socket);
-    }
-    return 0;
+
+    free(buffer);
+    free(full);
+    free(m.payload);
+
+    close(new_socket);
+  }
 }
