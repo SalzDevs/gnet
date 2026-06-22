@@ -2,6 +2,15 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/socket.h>
+
+#define PORT 8080
 
 struct Message {
     uint16_t size;        // total message size (type + payload)
@@ -49,22 +58,49 @@ Message convBytesToMessage(uint8_t* bytes) {
 }
 
 int main() {
-    uint8_t message_bytes[] = {
-        0x00, 0x05,   // total size = 5 (1 type + 4 payload)
-        0x01,         // type
-        0x01, 0x01, 0x01, 0x01
-    };
-
-    Message test_message = convBytesToMessage(message_bytes);
-
-    printf("Message { size: %u, type: %u }\n",
-           test_message.size,
-           test_message.messageType);
-
-    for (size_t i = 0; i < test_message.size - 1; i++) {
-        printf("%u\n", test_message.payload[i]);
+  int server_fd, new_socket; long valread;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+    
+    // Creating socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("In socket");
+        exit(EXIT_FAILURE);
     }
+    
 
-    Message_destroy(&test_message);
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons( PORT );
+    
+    memset(address.sin_zero, '\0', sizeof address.sin_zero);
+    
+    
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
+    {
+        perror("In bind");
+        exit(EXIT_FAILURE);
+    }
+    if (listen(server_fd, 10) < 0)
+    {
+        perror("In listen");
+        exit(EXIT_FAILURE);
+    }
+    while(1)
+    {
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+        {
+            perror("In accept");
+            exit(EXIT_FAILURE);
+        }
+        printf("Client Connected!"); 
+        char buffer[6] = {0};
+        valread = read( new_socket , buffer, 6);
+        for (auto elem : buffer){
+          printf("%u\n",elem);
+        }
+        close(new_socket);
+    }
     return 0;
 }
