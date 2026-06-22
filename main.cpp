@@ -18,6 +18,38 @@ struct Message {
     uint8_t* payload;
 };
 
+enum class Action : uint8_t {
+  Left = 1,
+  Right = 2,
+  Up = 3,
+  Down = 4,
+  Shoot = 5
+};
+
+void executeAction(Action action) {
+  switch (action) {
+    case Action::Left:
+      printf("You moved left\n");
+      break;
+
+    case Action::Right:
+      printf("You moved right\n");
+      break;
+
+    case Action::Up:
+      printf("You moved up\n");
+      break;
+
+    case Action::Down:
+      printf("You moved down\n");
+      break;
+
+    case Action::Shoot:
+      printf("You shot\n");
+      break;
+  }
+}
+
 void Message_init(Message* m, uint8_t type, const uint8_t* data, size_t len) {
     m->size = (uint16_t)(len + 1); // +1 for type
     m->messageType = type;
@@ -102,7 +134,7 @@ int main() {
     Message m = convBytesToMessage(full);
 
     printf("Message: size=%u type=%u\n", m.size, m.messageType);
-
+    executeAction((Action)m.messageType);
     for (int i = 0; i < m.size - 1; i++) {
       printf("%u\n", m.payload[i]);
     }
